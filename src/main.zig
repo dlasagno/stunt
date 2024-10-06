@@ -1,12 +1,7 @@
-//! By convention, main.zig is where your main function lives in the case that
-//! you are building an executable. If you are making a library, the convention
-//! is to delete this file and start with root.zig instead.
 const std = @import("std");
+const Scanner = @import("scanner.zig").Scanner;
 
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
-
     // stdout is for the actual output of your application, for example if you
     // are implementing gzip, then only the compressed bytes should be sent to
     // stdout, not any debugging messages.
@@ -14,7 +9,26 @@ pub fn main() !void {
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
 
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
+    const args = try std.process.argsAlloc(std.heap.page_allocator);
+    defer std.process.argsFree(std.heap.page_allocator, args);
+    if (args.len < 3) {
+        try stdout.print("Usage: stunt <input> <output>\n", .{});
+        std.process.exit(1);
+    }
+
+    const input_file = args[1];
+    // const output_file = args[2];
+
+    const input = try std.fs.cwd().readFileAlloc(std.heap.page_allocator, input_file, std.math.maxInt(usize));
+    defer std.heap.page_allocator.free(input);
+
+    var scanner = Scanner.init(input);
+    defer scanner.deinit();
+
+    try scanner.scanTokens();
+    for (scanner.tokens.items) |token| {
+        try token.print();
+    }
 
     try bw.flush(); // Don't forget to flush!
 }
