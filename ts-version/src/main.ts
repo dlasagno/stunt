@@ -1,5 +1,7 @@
 import { parseArgs } from "@std/cli";
 import { scanTokens } from "./scanner.ts";
+import { logError } from "./errors.ts";
+import { printSourceFile } from "./utils.ts";
 
 export function add(a: number, b: number): number {
   return a + b;
@@ -14,9 +16,32 @@ if (import.meta.main) {
 
   if (command === "tokenize" && typeof inputFile === "string") {
     const input = await Deno.readTextFile(inputFile);
-    console.log(input);
-    const [tokens, errors] = scanTokens(input);
+    const source = {
+      filename: inputFile,
+      content: input,
+    };
 
-    console.log(tokens);
+    console.log("Source code:");
+    printSourceFile(source);
+
+    const [tokens, scanErrors] = scanTokens(input);
+    if (scanErrors.length > 0) {
+      for (const err of scanErrors) {
+        console.log();
+        logError(err, source);
+      }
+      Deno.exit(1);
+    }
+
+    console.log();
+    console.log("Tokens:");
+    // console.log(tokens);
+    for (const token of tokens) {
+      console.log(
+        `${token.type} ${token.lexeme} ${token.position} ${
+          token.literal ?? null
+        }`,
+      );
+    }
   }
 }

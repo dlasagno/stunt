@@ -1,4 +1,4 @@
-import type { CompilerError } from "./errors.ts";
+import type { CompilerError, ErrorCode } from "./errors.ts";
 
 export type Token = {
   type: TokenType;
@@ -107,7 +107,11 @@ export function scanToken(ctx: ScannerContext): void {
       if (c.match(/^[0-9]/)) {
         scanNumber(ctx);
       } else {
-        addErrorAndRecover(ctx, `Unexpected character ${c}`);
+        addErrorAndRecover(
+          ctx,
+          "UnexpectedCharacter",
+          `"${c}" is not a valid character`,
+        );
       }
   }
 }
@@ -126,7 +130,11 @@ function scanNumber(ctx: ScannerContext): void {
   numberRegex.lastIndex = ctx.start;
   const literal = numberRegex.exec(ctx.source);
   if (!literal) {
-    addErrorAndRecover(ctx, `Unexpected character ${peek(ctx)}`);
+    addErrorAndRecover(
+      ctx,
+      "UnexpectedCharacter",
+      "The format of the number is invalid",
+    );
     return;
   }
   while (ctx.current < numberRegex.lastIndex) {
@@ -170,10 +178,15 @@ function addToken(
   });
 }
 
-function addErrorAndRecover(ctx: ScannerContext, message: string): void {
+function addErrorAndRecover(
+  ctx: ScannerContext,
+  code: ErrorCode,
+  message: string,
+): void {
   ctx.errors.push({
     position: ctx.start,
     length: ctx.current - ctx.start,
+    code,
     message,
   });
   while (!isAtEnd(ctx) && peek(ctx) !== "\n") {
