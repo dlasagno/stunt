@@ -1,6 +1,7 @@
 import { parseArgs } from "@std/cli";
-import { scanTokens } from "./scanner.ts";
 import { logError } from "./errors.ts";
+import { parse } from "./parser.ts";
+import { scanTokens } from "./scanner.ts";
 import { printSourceFile } from "./utils.ts";
 
 export function add(a: number, b: number): number {
@@ -35,13 +36,25 @@ if (import.meta.main) {
 
     console.log();
     console.log("Tokens:");
-    // console.log(tokens);
     for (const token of tokens) {
       console.log(
-        `${token.type} ${token.lexeme} ${token.position} ${
-          token.literal ?? null
-        }`,
+        `${token.type.padEnd(13)}\t${
+          token.lexeme.padEnd(10)
+        }\t${token.position}\t${token.literal ?? null}`,
       );
     }
+
+    const [ast, parseErrors] = parse(tokens);
+    if (parseErrors.length > 0) {
+      for (const err of parseErrors) {
+        console.log();
+        logError(err, source);
+      }
+      Deno.exit(1);
+    }
+
+    console.log();
+    console.log("AST:");
+    console.log(ast);
   }
 }
