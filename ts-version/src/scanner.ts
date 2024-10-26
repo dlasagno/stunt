@@ -93,10 +93,29 @@ export function scanToken(ctx: ScannerContext): void {
       addToken(ctx, "SEMICOLON");
       break;
     case "/":
-      addToken(ctx, "SLASH");
+      if (match(ctx, "/")) {
+        // A comment goes until the end of the line and it's ignored
+        while (peek(ctx) !== "\n" && !isAtEnd(ctx)) {
+          advance(ctx);
+        }
+      } else {
+        addToken(ctx, "SLASH");
+      }
       break;
     case "*":
       addToken(ctx, "STAR");
+      break;
+    case "!":
+      addToken(ctx, match(ctx, "=") ? "BANG_EQUAL" : "BANG");
+      break;
+    case "=":
+      addToken(ctx, match(ctx, "=") ? "EQUAL_EQUAL" : "EQUAL");
+      break;
+    case "<":
+      addToken(ctx, match(ctx, "=") ? "LESS_EQUAL" : "LESS");
+      break;
+    case ">":
+      addToken(ctx, match(ctx, "=") ? "GREATER_EQUAL" : "GREATER");
       break;
     case " ":
     case "\t":
@@ -206,6 +225,14 @@ function advance(ctx: ScannerContext): string {
   const c = ctx.source[ctx.current];
   ctx.current += 1;
   return c;
+}
+
+function match(ctx: ScannerContext, expected: string): boolean {
+  if (isAtEnd(ctx)) return false;
+  if (ctx.source[ctx.current] !== expected) return false;
+
+  ctx.current += 1;
+  return true;
 }
 
 function peek(ctx: ScannerContext): string {
