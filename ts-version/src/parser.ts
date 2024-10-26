@@ -1,13 +1,16 @@
 import type { ASTNode, Expr } from "./ast.ts";
-import type { CompilerError } from "./errors.ts";
+import type { CompilerError, ErrorCode } from "./errors.ts";
 import type { Token, TokenType } from "./scanner.ts";
 
-export function parse(tokens: Token[]): [ASTNode, CompilerError[]] {
+export function parse(tokens: Token[]): [ASTNode | null, CompilerError[]] {
   const ctx = createParserContext(tokens);
 
-  const ast = expression(ctx);
+  try {
+    const ast = expression(ctx);
+    return [ast, ctx.errors]; // TODO: Replace with real ctx.ast or find a better way
+  } catch (e) {}
 
-  return [ast, ctx.errors]; // TODO: Replace with real ctx.ast or find a better way
+  return [null, ctx.errors]; // TODO: Replace with real ctx.ast or find a better way
 }
 
 function expression(ctx: ParserContext): Expr {
@@ -97,13 +100,21 @@ function primary(ctx: ParserContext): Expr {
   }
 
   if (match(ctx, "LEFT_PAREN")) {
+    const position = peek(ctx, -1).position;
     const expr = expression(ctx);
     if (match(ctx, "RIGHT_PAREN")) {
       return { type: "groupingExpr", expr };
+    } else {
+      throw addError(
+        ctx,
+        "MissingClosingParenthesis",
+        "Missing closing parenthesis",
+        { position, length: 1 },
+      );
     }
   }
 
-  throw new Error(); // TODO: Error
+  throw addError(ctx, "ExpectedExpression", "This is not a valid expression");
 }
 
 // ----------------
@@ -126,6 +137,48 @@ function createParserContext(tokens: Token[]): ParserContext {
     start: 0,
     current: 0,
   };
+}
+
+class ParserException extends Error {
+  constructor() {
+    super();
+    this.name = "ParserError";
+  }
+}
+
+function addError(
+  ctx: ParserContext,
+  code: ErrorCode,
+  message: string,
+  { position, length }: { position?: number; length?: number } = {},
+): ParserException {
+  console.log(ctx.start, ctx.current, peek(ctx).lexeme);
+  const startToken = ctx.tokens[ctx.start];
+  const currentToken = ctx.tokens[ctx.current];
+  ctx.errors.push({
+    position: position ?? startToken.position,
+    length: length ??
+      currentToken.position - startToken.position + currentToken.lexeme.length,
+    code,
+    message,
+  });
+  return new ParserException();
+}
+
+function synchronize(ctx: ParserContext): void {
+  advance(ctx);
+  while (!isAtEnd(ctx) && peek(ctx).type !== "EOF") {
+    if (peek(ctx).type === "SEMICOLON") return;
+
+    switch (peek(ctx).type) {
+      case "CONST":
+      case "LET":
+      case "RETURN":
+        return;
+    }
+
+    advance(ctx);
+  }
 }
 
 function isAtEnd(ctx: ParserContext): boolean {

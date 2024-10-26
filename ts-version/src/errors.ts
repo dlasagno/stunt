@@ -34,7 +34,7 @@ export function logError(err: CompilerError, source: SourceFile): void {
   );
   console.error(
     `${"".padStart(pad)}| ${"".padStart(details.column - 1)}%c${
-      "^".padStart(err.length)
+      "^".padStart(err.length, "^")
     } ${err.message}`,
     "color: red",
   );
@@ -73,4 +73,6 @@ function getErrorDetails(err: CompilerError, source: string): {
 
 const errors = {
   UnexpectedCharacter: "Unexpected character",
+  ExpectedExpression: "Expected expression",
+  MissingClosingParenthesis: "Missing closing parenthesis",
 };
