@@ -48,6 +48,19 @@ export type TokenType =
   | "WHILE"
   | "EOF";
 
+const keywords: Record<string, TokenType> = {
+  true: "TRUE",
+  false: "FALSE",
+  fn: "FN",
+  let: "LET",
+  const: "CONST",
+  return: "RETURN",
+  if: "IF",
+  else: "ELSE",
+  while: "WHILE",
+  for: "FOR",
+};
+
 export function scanTokens(source: string): [Token[], CompilerError[]] {
   const ctx = createScannerContext(source);
 
@@ -126,8 +139,10 @@ export function scanToken(ctx: ScannerContext): void {
     case "\n":
       break;
     default:
-      if (c.match(/^[0-9]/)) {
+      if (isDigit(c)) {
         scanNumber(ctx);
+      } else if (isAlpha(c)) {
+        scanIdentifier(ctx);
       } else {
         addErrorAndRecover(
           ctx,
@@ -199,6 +214,60 @@ function scanNumber(ctx: ScannerContext): void {
     advance(ctx);
   }
   addToken(ctx, "NUMBER", Number(literal[0].replaceAll("_", "")));
+}
+
+function scanIdentifier(ctx: ScannerContext): void {
+  while (isAlphaNumeric(peek(ctx))) {
+    advance(ctx);
+  }
+  const type = keywords[ctx.source.slice(ctx.start, ctx.current)];
+  if (type) {
+    addToken(ctx, type);
+    return;
+  }
+  addToken(ctx, "IDENTIFIER");
+}
+
+function isAlpha(str: string): boolean {
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (
+      (code >= 65 && code <= 90) ||
+      (code >= 97 && code <= 122) ||
+      code === 95
+    ) {
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
+function isDigit(str: string): boolean {
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (code >= 48 && code <= 57) {
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
+function isAlphaNumeric(str: string): boolean {
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (
+      (code >= 65 && code <= 90) &&
+      (code >= 97 && code <= 122) &&
+      (code >= 48 && code <= 57) &&
+      code === 95
+    ) {
+      continue;
+    }
+    return false;
+  }
+  return true;
 }
 
 // -----------------
