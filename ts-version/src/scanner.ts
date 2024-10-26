@@ -117,6 +117,9 @@ export function scanToken(ctx: ScannerContext): void {
     case ">":
       addToken(ctx, match(ctx, "=") ? "GREATER_EQUAL" : "GREATER");
       break;
+    case '"':
+      scanString(ctx);
+      break;
     case " ":
     case "\t":
     case "\r":
@@ -133,6 +136,42 @@ export function scanToken(ctx: ScannerContext): void {
         );
       }
   }
+}
+
+function scanString(ctx: ScannerContext): void {
+  let unterminated = false;
+  let escaped = false;
+  while (escaped || peek(ctx) !== '"' && !isAtEnd(ctx)) {
+    escaped = false;
+    const c = advance(ctx);
+    switch (c) {
+      case "\\":
+        escaped = true;
+        break;
+      case "\n":
+        unterminated = true;
+        return;
+    }
+  }
+
+  if (isAtEnd(ctx)) {
+    addErrorAndRecover(
+      ctx,
+      "UnterminatedString",
+      "This string is missing a closing quote",
+    );
+    return;
+  } else if (unterminated) {
+    // TODO: Add a check to know if the string is multiline
+    addErrorAndRecover(
+      ctx,
+      "UnterminatedString",
+      "Multiline strings require a different syntax",
+    );
+  }
+
+  advance(ctx);
+  addToken(ctx, "STRING", ctx.source.slice(ctx.start + 1, ctx.current - 1));
 }
 
 const numberRegex = new RegExp(

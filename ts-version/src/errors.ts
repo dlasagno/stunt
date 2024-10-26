@@ -73,6 +73,7 @@ function getErrorDetails(err: CompilerError, source: string): {
 
 const errors = {
   UnexpectedCharacter: "Unexpected character",
+  UnterminatedString: "Unterminated string",
   ExpectedExpression: "Expected expression",
   MissingClosingParenthesis: "Missing closing parenthesis",
 };
