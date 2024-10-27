@@ -1,35 +1,51 @@
 import type {
-  AST,
   BinaryExpr,
+  Expr,
+  ExprStmt,
   GroupingExpr,
   LiteralExpr,
+  Program,
+  Stmt,
   UnaryExpr,
 } from "./ast.ts";
 
-export function generate(ast: AST): string {
+export function generate(ast: Program): string {
   let str = "";
 
-  switch (ast.type) {
-    case "binaryExpr":
-      str = generateBinaryExpr(ast);
-      break;
-    case "groupingExpr":
-      str = generateGroupingExpr(ast);
-      break;
-    case "literalExpr":
-      str = generateLiteralExpr(ast);
-      break;
-    case "unaryExpr":
-      str = generateUnaryExpr(ast);
-      break;
+  for (let i = 0; i < ast.stmts.length; i++) {
+    str += generateStatement(ast.stmts[i]) + "\n";
   }
 
   return str;
 }
 
+function generateStatement(stmt: Stmt): string {
+  switch (stmt.type) {
+    case "exprStmt":
+      return generateExprStmt(stmt);
+  }
+}
+
+function generateExprStmt(stmt: ExprStmt): string {
+  return generateExpr(stmt.expr) + ";";
+}
+
+function generateExpr(expr: Expr): string {
+  switch (expr.type) {
+    case "binaryExpr":
+      return generateBinaryExpr(expr);
+    case "groupingExpr":
+      return generateGroupingExpr(expr);
+    case "literalExpr":
+      return generateLiteralExpr(expr);
+    case "unaryExpr":
+      return generateUnaryExpr(expr);
+  }
+}
+
 function generateBinaryExpr(expr: BinaryExpr): string {
-  const left = generate(expr.left);
-  const right = generate(expr.right);
+  const left = generateExpr(expr.left);
+  const right = generateExpr(expr.right);
 
   switch (expr.op.type) {
     case "BANG_EQUAL":
@@ -56,7 +72,7 @@ function generateBinaryExpr(expr: BinaryExpr): string {
 }
 
 function generateUnaryExpr(expr: UnaryExpr): string {
-  const right = generate(expr.right);
+  const right = generateExpr(expr.right);
 
   switch (expr.op.type) {
     case "BANG":
@@ -67,7 +83,7 @@ function generateUnaryExpr(expr: UnaryExpr): string {
 }
 
 function generateGroupingExpr(expr: GroupingExpr): string {
-  return "(" + generate(expr.expr) + ")";
+  return "(" + generateExpr(expr.expr) + ")";
 }
 
 function generateLiteralExpr(expr: LiteralExpr): string {

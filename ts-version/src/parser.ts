@@ -1,18 +1,46 @@
-import type { AST, Expr } from "./ast.ts";
+import type { Expr, Program, Stmt } from "./ast.ts";
 import type { CompilerError, ErrorCode } from "./errors.ts";
 import type { Token, TokenType } from "./scanner.ts";
 
-export function parse(tokens: Token[]): [AST | null, CompilerError[]] {
+export function parse(tokens: Token[]): [Program, CompilerError[]] {
   const ctx = createParserContext(tokens);
 
-  try {
-    const ast = expression(ctx);
-    return [ast, ctx.errors]; // TODO: Replace with real ctx.ast or find a better way
-  } catch (_e) {
-    // TODO: synchronize
+  // try {
+  //   const ast = expression(ctx);
+  //   return [ast, ctx.errors]; // TODO: Replace with real ctx.ast or find a better way
+  // } catch (_e) {
+  //   // TODO: synchronize
+  // }
+  const stmts: Stmt[] = [];
+  while (!isAtEnd(ctx)) {
+    try {
+      stmts.push(statement(ctx));
+    } catch (_e) {
+      // TODO: synchronize
+    }
   }
 
-  return [null, ctx.errors]; // TODO: Replace with real ctx.ast or find a better way
+  return [{
+    type: "program",
+    stmts,
+  }, ctx.errors]; // TODO: Replace with real ctx.ast or find a better way
+}
+
+function statement(ctx: ParserContext): Stmt {
+  return expressionStatement(ctx);
+}
+
+function expressionStatement(ctx: ParserContext): Stmt {
+  const expr = expression(ctx);
+
+  if (match(ctx, "SEMICOLON")) {
+    return { type: "exprStmt", expr };
+  }
+  const token = peek(ctx);
+  throw addError(ctx, "MissingSemicolon", 'Missing ";" after expression', {
+    position: token.position + token.lexeme.length,
+    length: 1,
+  });
 }
 
 function expression(ctx: ParserContext): Expr {

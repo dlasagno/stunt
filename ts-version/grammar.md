@@ -3,6 +3,11 @@
 This is the grammar for the stunt programming language.
 
 ```
+program       -> statement* EOF ;
+statement     -> exprStmt
+               | ... ;
+exprStmt      -> expression ";" ;
+
 expression    -> equality ;
 equality      -> comparison ( ( "!=" | "==" ) comparison )* ;
 comparison    -> term ( ( ">" | ">=" | "<" | "<=" ) term )* ;

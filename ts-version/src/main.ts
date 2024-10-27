@@ -24,7 +24,7 @@ if (import.meta.main) {
       content: input,
     };
 
-    console.log("Source code:");
+    console.log("%cSource code:", "font-weight: bold");
     printSourceFile(source);
 
     const [tokens, scanErrors] = scanTokens(input);
@@ -37,7 +37,7 @@ if (import.meta.main) {
     }
 
     console.log();
-    console.log("Tokens:");
+    console.log("%cTokens:", "font-weight: bold");
     for (const token of tokens) {
       console.log(
         `${token.type.padEnd(13)}\t${
@@ -56,17 +56,20 @@ if (import.meta.main) {
     }
 
     console.log();
-    console.log("AST:");
-    if (ast) {
-      printAST(ast);
-    } else {
-      console.log("null");
-      Deno.exit();
-    }
+    console.log("%cAST:", "font-weight: bold");
+    printAST(ast);
 
     if (typeof outputFile === "string") {
       const output = generate(ast);
       await Deno.writeTextFile(outputFile, output);
+      const outputSource = {
+        filename: outputFile,
+        content: output,
+      };
+
+      console.log();
+      console.log("%cOutput code:", "font-weight: bold");
+      printSourceFile(outputSource);
     } else {
       console.log("No output file");
     }
