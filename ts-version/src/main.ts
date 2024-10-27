@@ -1,5 +1,7 @@
 import { parseArgs } from "@std/cli";
+import { printAST } from "./ast.ts";
 import { logError } from "./errors.ts";
+import { generate } from "./generator.ts";
 import { parse } from "./parser.ts";
 import { scanTokens } from "./scanner.ts";
 import { printSourceFile } from "./utils.ts";
@@ -55,6 +57,18 @@ if (import.meta.main) {
 
     console.log();
     console.log("AST:");
-    console.log(ast);
+    if (ast) {
+      printAST(ast);
+    } else {
+      console.log("null");
+      Deno.exit();
+    }
+
+    if (typeof outputFile === "string") {
+      const output = generate(ast);
+      await Deno.writeTextFile(outputFile, output);
+    } else {
+      console.log("No output file");
+    }
   }
 }

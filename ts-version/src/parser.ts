@@ -1,14 +1,16 @@
-import type { ASTNode, Expr } from "./ast.ts";
+import type { AST, Expr } from "./ast.ts";
 import type { CompilerError, ErrorCode } from "./errors.ts";
 import type { Token, TokenType } from "./scanner.ts";
 
-export function parse(tokens: Token[]): [ASTNode | null, CompilerError[]] {
+export function parse(tokens: Token[]): [AST | null, CompilerError[]] {
   const ctx = createParserContext(tokens);
 
   try {
     const ast = expression(ctx);
     return [ast, ctx.errors]; // TODO: Replace with real ctx.ast or find a better way
-  } catch (e) {}
+  } catch (_e) {
+    // TODO: synchronize
+  }
 
   return [null, ctx.errors]; // TODO: Replace with real ctx.ast or find a better way
 }
@@ -20,10 +22,11 @@ function expression(ctx: ParserContext): Expr {
 function equality(ctx: ParserContext): Expr {
   let expr = comparison(ctx);
 
-  while (match(ctx, "BANG_EQUAL", "EQUAL_EQUAL")) {
+  const validOps = ["BANG_EQUAL", "EQUAL_EQUAL"] satisfies TokenType[];
+  while (match(ctx, ...validOps)) {
     expr = {
       type: "binaryExpr",
-      op: peek(ctx, -1),
+      op: peek(ctx, -1) as Token<typeof validOps[number]>,
       left: expr,
       right: comparison(ctx),
     };
@@ -35,10 +38,16 @@ function equality(ctx: ParserContext): Expr {
 function comparison(ctx: ParserContext): Expr {
   let expr = term(ctx);
 
-  while (match(ctx, "GREATER", "GREATER_EQUAL", "LESS", "LESS_EQUAL")) {
+  const validOps = [
+    "GREATER",
+    "GREATER_EQUAL",
+    "LESS",
+    "LESS_EQUAL",
+  ] satisfies TokenType[];
+  while (match(ctx, ...validOps)) {
     expr = {
       type: "binaryExpr",
-      op: peek(ctx, -1),
+      op: peek(ctx, -1) as Token<typeof validOps[number]>,
       left: expr,
       right: term(ctx),
     };
@@ -50,10 +59,11 @@ function comparison(ctx: ParserContext): Expr {
 function term(ctx: ParserContext): Expr {
   let expr = factor(ctx);
 
-  while (match(ctx, "MINUS", "PLUS")) {
+  const validOps = ["MINUS", "PLUS"] satisfies TokenType[];
+  while (match(ctx, ...validOps)) {
     expr = {
       type: "binaryExpr",
-      op: peek(ctx, -1),
+      op: peek(ctx, -1) as Token<typeof validOps[number]>,
       left: expr,
       right: factor(ctx),
     };
@@ -65,10 +75,11 @@ function term(ctx: ParserContext): Expr {
 function factor(ctx: ParserContext): Expr {
   let expr = unary(ctx);
 
-  while (match(ctx, "SLASH", "STAR")) {
+  const validOps = ["SLASH", "STAR"] satisfies TokenType[];
+  while (match(ctx, ...validOps)) {
     expr = {
       type: "binaryExpr",
-      op: peek(ctx, -1),
+      op: peek(ctx, -1) as Token<typeof validOps[number]>,
       left: expr,
       right: unary(ctx),
     };
@@ -78,10 +89,11 @@ function factor(ctx: ParserContext): Expr {
 }
 
 function unary(ctx: ParserContext): Expr {
-  if (match(ctx, "BANG", "MINUS")) {
+  const validOps = ["BANG", "MINUS"] satisfies TokenType[];
+  if (match(ctx, ...validOps)) {
     return {
       type: "unaryExpr",
-      op: peek(ctx, -1),
+      op: peek(ctx, -1) as Token<typeof validOps[number]>,
       right: primary(ctx),
     };
   }
@@ -123,7 +135,6 @@ function primary(ctx: ParserContext): Expr {
 
 type ParserContext = {
   tokens: Token[];
-  ast: ASTNode;
   errors: CompilerError[];
   start: number;
   current: number;
@@ -132,7 +143,6 @@ type ParserContext = {
 function createParserContext(tokens: Token[]): ParserContext {
   return {
     tokens,
-    ast: { type: "EOF" }, // TODO: Replace with real AST
     errors: [],
     start: 0,
     current: 0,
@@ -165,7 +175,7 @@ function addError(
   return new ParserException();
 }
 
-function synchronize(ctx: ParserContext): void {
+function _synchronize(ctx: ParserContext): void {
   advance(ctx);
   while (!isAtEnd(ctx) && peek(ctx).type !== "EOF") {
     if (peek(ctx).type === "SEMICOLON") return;

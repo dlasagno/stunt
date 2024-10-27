@@ -1,7 +1,7 @@
 import type { CompilerError, ErrorCode } from "./errors.ts";
 
-export type Token = {
-  type: TokenType;
+export type Token<T extends TokenType = TokenType> = {
+  type: T;
   lexeme: string;
   literal: undefined | number | string;
   position: number;
