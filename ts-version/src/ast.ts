@@ -53,15 +53,24 @@ export type LiteralExpr = ASTNode & {
 //  Print Functions
 // -----------------
 
-const SPACES = " |";
+const SPACES = " │";
 
 function printEntry(
   prefix: string,
+  last: boolean,
   ...elements: [string, string?][]
 ): void {
   const str = elements.map(([elem]) => "%c" + elem).join(" ");
   const colors = elements.map(([, color]) => color ? "color: " + color : "");
-  console.log(`${prefix}-${str}`, ...colors);
+  let pfx = prefix;
+  if (prefix.length > 0) {
+    if (last) {
+      pfx = prefix.slice(0, -1) + "└";
+    } else {
+      pfx = prefix.slice(0, -1) + "├";
+    }
+  }
+  console.log(`${pfx}─${str}`, ...colors);
 }
 
 function fmtPrefix(prefix: string, last = true): string {
@@ -87,15 +96,15 @@ export function printAST(ast: AST, prefix = "", last = true): void {
 }
 
 function printProgram(program: Program, prefix = "", last = true): void {
-  printEntry(prefix, ["program", "cyan"]);
+  printEntry(prefix, last, ["program", "cyan"]);
   const pfx = fmtPrefix(prefix, last);
   for (let i = 0; i < program.stmts.length; i++) {
-    printAST(program.stmts[i], pfx);
+    printAST(program.stmts[i], pfx, i === program.stmts.length - 1);
   }
 }
 
 function printExprStmt(stmt: ExprStmt, prefix = "", last = true): void {
-  printEntry(prefix, ["exprStmt", "cyan"]);
+  printEntry(prefix, last, ["exprStmt", "cyan"]);
   const pfx = fmtPrefix(prefix, last);
   printAST(stmt.expr, pfx);
 }
@@ -105,24 +114,29 @@ export function printBinaryExpr(
   prefix = "",
   last = true,
 ): void {
-  printEntry(prefix, ["binaryExpr", "cyan"], [expr.op.type]);
+  printEntry(prefix, last, ["binaryExpr", "cyan"], [expr.op.type]);
   const pfx = fmtPrefix(prefix, last);
   printAST(expr.left, pfx, false);
   printAST(expr.right, pfx);
 }
 
 function printUnaryExpr(expr: UnaryExpr, prefix = "", last = true): void {
-  printEntry(prefix, ["unaryExpr", "cyan"], [expr.op.type]);
+  printEntry(prefix, last, ["unaryExpr", "cyan"], [expr.op.type]);
   const pfx = fmtPrefix(prefix, last);
   printAST(expr.right, pfx);
 }
 
 function printGroupingExpr(expr: GroupingExpr, prefix = "", last = true): void {
-  printEntry(prefix, ["groupingExpr", "cyan"]);
+  printEntry(prefix, last, ["groupingExpr", "cyan"]);
   const pfx = fmtPrefix(prefix, last);
   printAST(expr.expr, pfx);
 }
 
 function printLiteralExpr(expr: LiteralExpr, prefix = "", last = true): void {
-  printEntry(prefix, ["literalExpr", "cyan"], [String(expr.value), "yellow"]);
+  printEntry(
+    prefix,
+    last,
+    ["literalExpr", "cyan"],
+    [String(expr.value), "yellow"],
+  );
 }
