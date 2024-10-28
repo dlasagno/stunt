@@ -3,9 +3,16 @@
 This is the grammar for the stunt programming language.
 
 ```
-program       -> statement* EOF ;
+program       -> declaration* EOF ;
+declaration   -> constDecl
+               | letDecl
+               | statement ;
 statement     -> exprStmt
                | ... ;
+
+constDecl     -> "const" IDENTIFIER "=" expression ";" ;
+letDecl       -> "let" IDENTIFIER "=" expression ";" ;
+
 exprStmt      -> expression ";" ;
 
 expression    -> equality ;
@@ -19,5 +26,6 @@ primary       -> NUMBER
                | STRING
                | "true"
                | "false"
-               | "(" expression ")" ;
+               | "(" expression ")"
+               | IDENTIFIER ;
 ```

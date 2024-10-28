@@ -1,5 +1,6 @@
 import type {
   BinaryExpr,
+  Decl,
   Expr,
   ExprStmt,
   GroupingExpr,
@@ -7,16 +8,35 @@ import type {
   Program,
   Stmt,
   UnaryExpr,
+  VarDecl,
+  VariableExpr,
 } from "./ast.ts";
 
 export function generate(ast: Program): string {
   let str = "";
 
   for (let i = 0; i < ast.stmts.length; i++) {
-    str += generateStatement(ast.stmts[i]) + "\n";
+    const node = ast.stmts[i];
+    if (node.type === "varDecl") {
+      str += generateDeclaration(node) + "\n";
+    } else {
+      str += generateStatement(node) + "\n";
+    }
   }
 
   return str;
+}
+
+function generateDeclaration(decl: Decl): string {
+  switch (decl.type) {
+    case "varDecl":
+      return generateVarDecl(decl);
+  }
+}
+
+function generateVarDecl(decl: VarDecl): string {
+  const keyword = decl.isConst ? "const" : "let";
+  return `${keyword} ${decl.name.lexeme} = ${generateExpr(decl.initializer)};`;
 }
 
 function generateStatement(stmt: Stmt): string {
@@ -34,12 +54,14 @@ function generateExpr(expr: Expr): string {
   switch (expr.type) {
     case "binaryExpr":
       return generateBinaryExpr(expr);
-    case "groupingExpr":
-      return generateGroupingExpr(expr);
-    case "literalExpr":
-      return generateLiteralExpr(expr);
     case "unaryExpr":
       return generateUnaryExpr(expr);
+    case "groupingExpr":
+      return generateGroupingExpr(expr);
+    case "variableExpr":
+      return generateVariableExpr(expr);
+    case "literalExpr":
+      return generateLiteralExpr(expr);
   }
 }
 
@@ -84,6 +106,10 @@ function generateUnaryExpr(expr: UnaryExpr): string {
 
 function generateGroupingExpr(expr: GroupingExpr): string {
   return "(" + generateExpr(expr.expr) + ")";
+}
+
+function generateVariableExpr(expr: VariableExpr): string {
+  return expr.name.lexeme;
 }
 
 function generateLiteralExpr(expr: LiteralExpr): string {

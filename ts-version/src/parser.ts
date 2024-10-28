@@ -1,29 +1,75 @@
-import type { Expr, Program, Stmt } from "./ast.ts";
+import type { Decl, Expr, Program, Stmt } from "./ast.ts";
 import type { CompilerError, ErrorCode } from "./errors.ts";
 import type { Token, TokenType } from "./scanner.ts";
 
 export function parse(tokens: Token[]): [Program, CompilerError[]] {
   const ctx = createParserContext(tokens);
 
-  // try {
-  //   const ast = expression(ctx);
-  //   return [ast, ctx.errors]; // TODO: Replace with real ctx.ast or find a better way
-  // } catch (_e) {
-  //   // TODO: synchronize
-  // }
-  const stmts: Stmt[] = [];
+  const stmts: (Decl | Stmt)[] = [];
   while (!isAtEnd(ctx)) {
-    try {
-      stmts.push(statement(ctx));
-    } catch (_e) {
-      // TODO: synchronize
-    }
+    setStart(ctx);
+    const decl = declaration(ctx);
+    if (decl === null) continue;
+    stmts.push(decl);
   }
 
   return [{
     type: "program",
     stmts,
   }, ctx.errors]; // TODO: Replace with real ctx.ast or find a better way
+}
+
+function declaration(ctx: ParserContext): Decl | Stmt | null {
+  try {
+    if (match(ctx, "CONST", "LET")) {
+      return varDeclaration(ctx);
+    }
+
+    return statement(ctx);
+  } catch (_e) {
+    synchronize(ctx);
+    return null;
+  }
+}
+
+function varDeclaration(ctx: ParserContext): Decl {
+  const isConst = peek(ctx, -1).type === "CONST";
+
+  if (!match(ctx, "IDENTIFIER")) {
+    const token = peek(ctx, -1);
+    throw addError(
+      ctx,
+      "MissingIdentifier",
+      `Missing ${isConst ? "variable" : "constant"} name after "${
+        isConst ? "const" : "let"
+      }"`,
+      { position: token.position, length: token.lexeme.length },
+    );
+  }
+  const name = peek(ctx, -1) as Token<"IDENTIFIER">;
+  if (!match(ctx, "EQUAL")) {
+    throw addError(
+      ctx,
+      "MissingInitializer",
+      `Missing initializer for "${name.lexeme}"`,
+      { position: name.position, length: name.lexeme.length },
+    );
+  }
+  const initializer = expression(ctx);
+  if (!match(ctx, "SEMICOLON")) {
+    const token = peek(ctx, -1);
+    throw addError(ctx, "MissingSemicolon", 'Missing ";" after initializer', { // TODO: revise
+      position: token.position + token.lexeme.length,
+      length: 1,
+    });
+  }
+
+  return {
+    type: "varDecl",
+    isConst,
+    name,
+    initializer,
+  };
 }
 
 function statement(ctx: ParserContext): Stmt {
@@ -33,14 +79,15 @@ function statement(ctx: ParserContext): Stmt {
 function expressionStatement(ctx: ParserContext): Stmt {
   const expr = expression(ctx);
 
-  if (match(ctx, "SEMICOLON")) {
-    return { type: "exprStmt", expr };
+  if (!match(ctx, "SEMICOLON")) {
+    const token = peek(ctx);
+    throw addError(ctx, "MissingSemicolon", 'Missing ";" after expression', { // TODO: revise
+      position: token.position + token.lexeme.length,
+      length: 1,
+    });
   }
-  const token = peek(ctx);
-  throw addError(ctx, "MissingSemicolon", 'Missing ";" after expression', {
-    position: token.position + token.lexeme.length,
-    length: 1,
-  });
+
+  return { type: "exprStmt", expr };
 }
 
 function expression(ctx: ParserContext): Expr {
@@ -139,12 +186,14 @@ function primary(ctx: ParserContext): Expr {
     return { type: "literalExpr", value: String(peek(ctx, -1).literal) };
   }
 
+  if (match(ctx, "IDENTIFIER")) {
+    return { type: "variableExpr", name: peek(ctx, -1) as Token<"IDENTIFIER"> };
+  }
+
   if (match(ctx, "LEFT_PAREN")) {
     const position = peek(ctx, -1).position;
     const expr = expression(ctx);
-    if (match(ctx, "RIGHT_PAREN")) {
-      return { type: "groupingExpr", expr };
-    } else {
+    if (!match(ctx, "RIGHT_PAREN")) {
       throw addError(
         ctx,
         "MissingClosingParenthesis",
@@ -152,8 +201,10 @@ function primary(ctx: ParserContext): Expr {
         { position, length: 1 },
       );
     }
+    return { type: "groupingExpr", expr };
   }
 
+  setStart(ctx);
   throw addError(ctx, "ExpectedExpression", "This is not a valid expression");
 }
 
@@ -188,22 +239,29 @@ function addError(
   ctx: ParserContext,
   code: ErrorCode,
   message: string,
-  { position, length }: { position?: number; length?: number } = {},
+  options?: { position: number; length: number },
 ): ParserException {
-  console.log(ctx.start, ctx.current, peek(ctx).lexeme);
-  const startToken = ctx.tokens[ctx.start];
-  const currentToken = ctx.tokens[ctx.current];
-  ctx.errors.push({
-    position: position ?? startToken.position,
-    length: length ??
-      currentToken.position - startToken.position + currentToken.lexeme.length,
-    code,
-    message,
-  });
+  if (options) {
+    ctx.errors.push({
+      position: options.position,
+      length: options.length,
+      code,
+      message,
+    });
+  } else {
+    const start = ctx.tokens[ctx.start];
+    const current = ctx.tokens[ctx.current];
+    ctx.errors.push({
+      position: start.position,
+      length: current.position + current.lexeme.length - start.position,
+      code,
+      message,
+    });
+  }
   return new ParserException();
 }
 
-function _synchronize(ctx: ParserContext): void {
+function synchronize(ctx: ParserContext): void {
   advance(ctx);
   while (!isAtEnd(ctx) && peek(ctx).type !== "EOF") {
     if (peek(ctx).type === "SEMICOLON") return;
@@ -221,6 +279,10 @@ function _synchronize(ctx: ParserContext): void {
 
 function isAtEnd(ctx: ParserContext): boolean {
   return ctx.current >= ctx.tokens.length || peek(ctx).type === "EOF";
+}
+
+function setStart(ctx: ParserContext): void {
+  ctx.start = ctx.current;
 }
 
 function match(ctx: ParserContext, ...types: TokenType[]): boolean {

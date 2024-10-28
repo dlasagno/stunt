@@ -1,10 +1,10 @@
 import type { SourceFile } from "./utils.ts";
 
 export type CompilerError = {
-  position: number;
-  length: number;
   code: ErrorCode;
   message: string;
+  position: number;
+  length: number;
 };
 export type ErrorCode = keyof typeof errors;
 
@@ -46,15 +46,18 @@ function getErrorDetails(err: CompilerError, source: string): {
   line: string;
 } {
   let lineNumber = 1;
-  let lineStart = 0;
   for (let i = 0; i < err.position; i++) {
     if (source[i] === "\n") {
       lineNumber += 1;
-      lineStart = i + 1;
     }
   }
 
-  let lineEnd = err.position + err.length;
+  let lineStart = err.position;
+  while (source[lineStart - 1] !== "\n" && lineStart > 0) {
+    lineStart -= 1;
+  }
+
+  let lineEnd = lineStart;
   while (source[lineEnd] !== "\n" && lineEnd < source.length) {
     lineEnd += 1;
   }
@@ -75,6 +78,8 @@ const errors = {
   UnexpectedCharacter: "Unexpected character",
   UnterminatedString: "Unterminated string",
   MissingSemicolon: "Missing semicolon",
+  MissingIdentifier: "Missing identifier",
+  MissingInitializer: "Missing initializer",
   ExpectedExpression: "Expected expression",
   MissingClosingParenthesis: "Missing closing parenthesis",
 };

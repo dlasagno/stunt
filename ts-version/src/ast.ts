@@ -4,13 +4,26 @@ export type ASTNode = {
   type: string;
 };
 
-export type AST = Program | Stmt | Expr;
+export type AST = Program | Decl | Stmt | Expr;
+export type Decl = VarDecl;
 export type Stmt = ExprStmt;
-export type Expr = GroupingExpr | BinaryExpr | UnaryExpr | LiteralExpr;
+export type Expr =
+  | GroupingExpr
+  | BinaryExpr
+  | UnaryExpr
+  | VariableExpr
+  | LiteralExpr;
 
 export type Program = ASTNode & {
   type: "program";
-  stmts: Stmt[];
+  stmts: (Decl | Stmt)[];
+};
+
+export type VarDecl = ASTNode & {
+  type: "varDecl";
+  isConst: boolean;
+  name: Token<"IDENTIFIER">;
+  initializer: Expr;
 };
 
 export type ExprStmt = ASTNode & {
@@ -43,6 +56,10 @@ export type UnaryExpr = ASTNode & {
 export type GroupingExpr = ASTNode & {
   type: "groupingExpr";
   expr: Expr;
+};
+export type VariableExpr = ASTNode & {
+  type: "variableExpr";
+  name: Token<"IDENTIFIER">;
 };
 export type LiteralExpr = ASTNode & {
   type: "literalExpr";
@@ -82,6 +99,8 @@ export function printAST(ast: AST, prefix = "", last = true): void {
   switch (ast.type) {
     case "program":
       return printProgram(ast, prefix, last);
+    case "varDecl":
+      return printVarDecl(ast, prefix, last);
     case "exprStmt":
       return printExprStmt(ast, prefix, last);
     case "binaryExpr":
@@ -101,6 +120,18 @@ function printProgram(program: Program, prefix = "", last = true): void {
   for (let i = 0; i < program.stmts.length; i++) {
     printAST(program.stmts[i], pfx, i === program.stmts.length - 1);
   }
+}
+
+function printVarDecl(decl: VarDecl, prefix = "", last = true): void {
+  printEntry(
+    prefix,
+    last,
+    ["varDecl", "cyan"],
+    [decl.isConst ? "CONST" : "LET"],
+    [decl.name.lexeme, "magenta"],
+  );
+  const pfx = fmtPrefix(prefix, last);
+  printAST(decl.initializer, pfx);
 }
 
 function printExprStmt(stmt: ExprStmt, prefix = "", last = true): void {

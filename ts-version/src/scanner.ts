@@ -64,10 +64,9 @@ const keywords: Record<string, TokenType> = {
 export function scanTokens(source: string): [Token[], CompilerError[]] {
   const ctx = createScannerContext(source);
 
-  setStart(ctx);
   while (!isAtEnd(ctx)) {
-    scanToken(ctx);
     setStart(ctx);
+    scanToken(ctx);
   }
   addToken(ctx, "EOF");
 
@@ -218,6 +217,7 @@ function scanNumber(ctx: ScannerContext): void {
 
 function scanIdentifier(ctx: ScannerContext): void {
   while (isAlphaNumeric(peek(ctx))) {
+    console.log(peek(ctx));
     advance(ctx);
   }
   const type = keywords[ctx.source.slice(ctx.start, ctx.current)];
@@ -258,9 +258,9 @@ function isAlphaNumeric(str: string): boolean {
   for (let i = 0; i < str.length; i++) {
     const code = str.charCodeAt(i);
     if (
-      (code >= 65 && code <= 90) &&
-      (code >= 97 && code <= 122) &&
-      (code >= 48 && code <= 57) &&
+      (code >= 65 && code <= 90) ||
+      (code >= 97 && code <= 122) ||
+      (code >= 48 && code <= 57) ||
       code === 95
     ) {
       continue;
