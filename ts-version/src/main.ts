@@ -1,5 +1,5 @@
 import { parseArgs } from "@std/cli";
-import { printAST } from "./ast.ts";
+import { printAST } from "./ast/utils.ts";
 import { logError } from "./errors.ts";
 import { generate } from "./generator.ts";
 import { parse } from "./parser.ts";

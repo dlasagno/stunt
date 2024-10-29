@@ -10,7 +10,7 @@ import type {
   UnaryExpr,
   VarDecl,
   VariableExpr,
-} from "./ast.ts";
+} from "./ast/types.ts";
 
 export function generate(ast: Program): string {
   let str = "";

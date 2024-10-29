@@ -1,4 +1,4 @@
-import type { Decl, Expr, Program, Stmt } from "./ast.ts";
+import type { Decl, Expr, Program, Stmt } from "./ast/types.ts";
 import type { CompilerError, ErrorCode } from "./errors.ts";
 import type { Token, TokenType } from "./scanner.ts";
 

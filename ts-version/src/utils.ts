@@ -1,3 +1,8 @@
+// deno-lint-ignore no-explicit-any
+export type Push<T extends any[], V> = [...T, V];
+// deno-lint-ignore no-explicit-any
+export type Pop<T extends any[]> = T extends [...infer U, any] ? U : never;
+
 export type SourceFile = {
   filename: string;
   content: string;
