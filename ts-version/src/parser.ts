@@ -1,11 +1,19 @@
-import type { Decl, Expr, Program, Stmt } from "./ast/types.ts";
+import {
+  type Block,
+  type Decl,
+  type DeclOrStmt,
+  type Expr,
+  isNonEvaluableBlock,
+  type Program,
+  type Stmt,
+} from "./ast/types.ts";
 import type { CompilerError, ErrorCode } from "./errors.ts";
 import type { Token, TokenType } from "./tokens.ts";
 
 export function parse(tokens: Token[]): [Program, CompilerError[]] {
   const ctx = createParserContext(tokens);
 
-  const stmts: (Decl | Stmt)[] = [];
+  const stmts: DeclOrStmt[] = [];
   while (!isAtEnd(ctx)) {
     setStart(ctx);
     const decl = declaration(ctx);
@@ -19,7 +27,7 @@ export function parse(tokens: Token[]): [Program, CompilerError[]] {
   }, ctx.errors];
 }
 
-function declaration(ctx: ParserContext): Decl | Stmt | null {
+function declaration(ctx: ParserContext): DeclOrStmt | null {
   try {
     if (match(ctx, "CONST", "LET")) {
       return varDeclaration(ctx);
@@ -73,7 +81,48 @@ function varDeclaration(ctx: ParserContext): Decl {
 }
 
 function statement(ctx: ParserContext): Stmt {
+  if (match(ctx, "LEFT_BRACE")) {
+    const blk = block(ctx);
+    if (!isNonEvaluableBlock(blk)) {
+      throw addError(
+        ctx,
+        "UnexpectedEvaluableBlock",
+        "Unexpected evaluable block",
+      );
+    }
+    return {
+      type: "blockStmt",
+      block: blk,
+    };
+  }
   return assignment(ctx);
+}
+
+// TODO: decide if the left brace should be checked in this function
+function block(ctx: ParserContext): Block {
+  const stmts: DeclOrStmt[] = [];
+  while (!check(ctx, "RIGHT_BRACE") && !isAtEnd(ctx)) {
+    const stmt = declaration(ctx);
+    if (stmt === null) continue;
+    stmts.push(stmt);
+  }
+
+  // TODO: Check if the block is evaluable
+
+  if (!match(ctx, "RIGHT_BRACE")) {
+    const token = peek(ctx);
+    throw addError(
+      ctx,
+      "MissingClosingBrace",
+      "Missing closing brace",
+      { position: token.position, length: 1 },
+    );
+  }
+  return {
+    type: "block",
+    stmts,
+    value: null,
+  };
 }
 
 function assignment(ctx: ParserContext): Stmt {

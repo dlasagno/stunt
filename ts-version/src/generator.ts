@@ -1,6 +1,8 @@
 import type {
   Assignment,
   BinaryExpr,
+  Block,
+  BlockStmt,
   Decl,
   Expr,
   ExprStmt,
@@ -14,118 +16,214 @@ import type {
 } from "./ast/types.ts";
 
 export function generate(ast: Program): string {
-  let str = "";
+  const ctx = createGeneratorContext();
 
   for (let i = 0; i < ast.stmts.length; i++) {
     const node = ast.stmts[i];
     if (node.type === "varDecl") {
-      str += generateDeclaration(node) + "\n";
+      generateDeclaration(ctx, node);
     } else {
-      str += generateStatement(node) + "\n";
+      generateStatement(ctx, node);
     }
   }
 
-  return str;
+  return ctx.output;
 }
 
-function generateDeclaration(decl: Decl): string {
+function generateDeclaration(ctx: GeneratorContext, decl: Decl): void {
   switch (decl.type) {
     case "varDecl":
-      return generateVarDecl(decl);
+      generateVarDecl(ctx, decl);
   }
 }
 
-function generateVarDecl(decl: VarDecl): string {
+function generateVarDecl(ctx: GeneratorContext, decl: VarDecl): void {
   const keyword = decl.isConst ? "const" : "let";
-  return `${keyword} ${decl.name.lexeme} = ${generateExpr(decl.initializer)};`;
+  write(
+    ctx,
+    `${keyword} ${decl.name.lexeme} = `,
+    true,
+  );
+  generateExpr(ctx, decl.initializer);
+  write(ctx, ";\n");
 }
 
-function generateStatement(stmt: Stmt): string {
+function generateStatement(ctx: GeneratorContext, stmt: Stmt): void {
   switch (stmt.type) {
     case "assignment":
-      return generateAssignment(stmt);
+      generateAssignment(ctx, stmt);
+      break;
     case "exprStmt":
-      return generateExprStmt(stmt);
+      generateExprStmt(ctx, stmt);
+      break;
+    case "blockStmt":
+      generateBlockStmt(ctx, stmt);
+      break;
   }
 }
 
-function generateAssignment(stmt: Assignment): string {
-  return `${stmt.name.lexeme} = ${generateExpr(stmt.expression)};`;
+function generateAssignment(ctx: GeneratorContext, stmt: Assignment): void {
+  write(ctx, `${stmt.name.lexeme} = `, true);
+  generateExpr(ctx, stmt.expression);
+  write(ctx, ";\n");
 }
 
-function generateExprStmt(stmt: ExprStmt): string {
-  return generateExpr(stmt.expr) + ";";
+function generateExprStmt(ctx: GeneratorContext, stmt: ExprStmt): void {
+  write(ctx, "", true);
+  generateExpr(ctx, stmt.expr);
+  write(ctx, ";\n");
 }
 
-function generateExpr(expr: Expr): string {
+function generateBlockStmt(ctx: GeneratorContext, stmt: BlockStmt): void {
+  write(ctx, "", true);
+  generateBlock(ctx, stmt.block);
+  write(ctx, "\n");
+}
+
+function generateBlock(ctx: GeneratorContext, block: Block): void {
+  write(ctx, "{\n");
+  indent(ctx);
+
+  for (const stmt of block.stmts) {
+    if (stmt.type === "varDecl") {
+      generateVarDecl(ctx, stmt);
+      continue;
+    }
+    generateStatement(ctx, stmt);
+  }
+  outdent(ctx);
+  write(ctx, "}");
+}
+
+function generateExpr(ctx: GeneratorContext, expr: Expr): void {
   switch (expr.type) {
     case "binaryExpr":
-      return generateBinaryExpr(expr);
+      generateBinaryExpr(ctx, expr);
+      break;
     case "unaryExpr":
-      return generateUnaryExpr(expr);
+      generateUnaryExpr(ctx, expr);
+      break;
     case "groupingExpr":
-      return generateGroupingExpr(expr);
+      generateGroupingExpr(ctx, expr);
+      break;
     case "variableExpr":
-      return generateVariableExpr(expr);
+      generateVariableExpr(ctx, expr);
+      break;
     case "literalExpr":
-      return generateLiteralExpr(expr);
+      ``;
+      generateLiteralExpr(ctx, expr);
+      break;
   }
 }
 
-function generateBinaryExpr(expr: BinaryExpr): string {
-  const left = generateExpr(expr.left);
-  const right = generateExpr(expr.right);
+function generateBinaryExpr(ctx: GeneratorContext, expr: BinaryExpr): void {
+  generateExpr(ctx, expr.left);
 
   switch (expr.op.type) {
     case "BANG_EQUAL":
-      return left + "!==" + right;
+      write(ctx, "!==");
+      break;
     case "EQUAL_EQUAL":
-      return left + "===" + right;
+      write(ctx, "===");
+      break;
     case "GREATER":
-      return left + ">" + right;
+      write(ctx, ">");
+      break;
     case "GREATER_EQUAL":
-      return left + ">=" + right;
+      write(ctx, ">=");
+      break;
     case "LESS":
-      return left + "<" + right;
+      write(ctx, "<");
+      break;
     case "LESS_EQUAL":
-      return left + "<=" + right;
+      write(ctx, "<=");
+      break;
     case "MINUS":
-      return left + "-" + right;
+      write(ctx, "-");
+      break;
     case "PLUS":
-      return left + "+" + right;
+      write(ctx, "+");
+      break;
     case "SLASH":
-      return left + "/" + right;
+      write(ctx, "/");
+      break;
     case "STAR":
-      return left + "*" + right;
+      write(ctx, "*");
+      break;
   }
+
+  generateExpr(ctx, expr.right);
 }
 
-function generateUnaryExpr(expr: UnaryExpr): string {
-  const right = generateExpr(expr.right);
-
+function generateUnaryExpr(ctx: GeneratorContext, expr: UnaryExpr): void {
   switch (expr.op.type) {
     case "BANG":
-      return "!" + right;
+      write(ctx, "!");
+      break;
     case "MINUS":
-      return "-" + right;
+      write(ctx, "-");
+      break;
   }
+
+  generateExpr(ctx, expr.right);
 }
 
-function generateGroupingExpr(expr: GroupingExpr): string {
-  return "(" + generateExpr(expr.expr) + ")";
+function generateGroupingExpr(ctx: GeneratorContext, expr: GroupingExpr): void {
+  write(ctx, "(");
+  generateExpr(ctx, expr.expr);
+  write(ctx, ")");
 }
 
-function generateVariableExpr(expr: VariableExpr): string {
-  return expr.name.lexeme;
+function generateVariableExpr(ctx: GeneratorContext, expr: VariableExpr): void {
+  write(ctx, expr.name.lexeme);
 }
 
-function generateLiteralExpr(expr: LiteralExpr): string {
+function generateLiteralExpr(ctx: GeneratorContext, expr: LiteralExpr): void {
   switch (typeof expr.value) {
     case "number":
-      return expr.value.toString();
+      write(ctx, expr.value.toString());
+      break;
     case "string":
-      return JSON.stringify(expr.value);
+      write(ctx, JSON.stringify(expr.value));
+      break;
     case "boolean":
-      return expr.value ? "true" : "false";
+      write(ctx, expr.value ? "true" : "false");
+      break;
   }
+}
+
+// -------------------
+//  Generator Context
+// -------------------
+
+const SPACING = "  ";
+type GeneratorContext = {
+  indent: number;
+  output: string;
+};
+
+function createGeneratorContext(): GeneratorContext {
+  return {
+    indent: 0,
+    output: "",
+  };
+}
+
+function indent(ctx: GeneratorContext): void {
+  ctx.indent += 1;
+}
+
+function outdent(ctx: GeneratorContext): void {
+  ctx.indent -= 1;
+}
+
+function write(ctx: GeneratorContext, str: string, indent = false): void {
+  if (indent) {
+    ctx.output += SPACING.repeat(ctx.indent);
+  }
+  ctx.output += str;
+}
+
+function writeln(ctx: GeneratorContext, str: string): void {
+  write(ctx, SPACING.repeat(ctx.indent) + str + "\n");
 }

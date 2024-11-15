@@ -3,6 +3,8 @@ import type {
   Assignment,
   AST,
   BinaryExpr,
+  Block,
+  BlockStmt,
   ExprStmt,
   GroupingExpr,
   LiteralExpr,
@@ -17,6 +19,8 @@ export type VisitorWithCtx<Ctx = undefined> = {
   visitVarDecl?: (decl: VarDecl, ctx: Ctx) => Ctx;
   visitExprStmt?: (stmt: ExprStmt, ctx: Ctx) => Ctx;
   visitAssignment?: (stmt: Assignment, ctx: Ctx) => Ctx;
+  visitBlockStmt?: (stmt: BlockStmt, ctx: Ctx) => Ctx;
+  visitBlock?: (block: Block, ctx: Ctx) => Ctx;
   visitBinaryExpr?: (expr: BinaryExpr, ctx: Ctx) => Ctx;
   visitUnaryExpr?: (expr: UnaryExpr, ctx: Ctx) => Ctx;
   visitGroupingExpr?: (expr: GroupingExpr, ctx: Ctx) => Ctx;
@@ -66,6 +70,16 @@ export function visitASTWithCtx<Ctx>(
     case "assignment":
       newCtx = visitor.visitAssignment?.(ast, ctx) ?? newCtx;
       visitASTWithCtx(ast.expression, newCtx, visitor);
+      break;
+    case "blockStmt":
+      newCtx = visitor.visitBlockStmt?.(ast, ctx) ?? newCtx;
+      visitASTWithCtx(ast.block, newCtx, visitor);
+      break;
+    case "block":
+      newCtx = visitor.visitBlock?.(ast, ctx) ?? newCtx;
+      for (const stmt of ast.stmts) {
+        visitASTWithCtx(stmt, newCtx, visitor);
+      }
       break;
     case "binaryExpr":
       newCtx = visitor.visitBinaryExpr?.(ast, ctx) ?? newCtx;

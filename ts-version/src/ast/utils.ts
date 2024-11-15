@@ -75,6 +75,24 @@ export function printAST(ast: AST) {
           lastChild: stmt.expression,
         };
       },
+      visitBlockStmt(stmt, { prefix, lastChild }) {
+        const last = stmt === lastChild;
+        printEntry(prefix, last, ["blockStmt", "cyan"]);
+        return {
+          prefix: fmtPrefix(prefix, last),
+          lastChild: stmt.block,
+        };
+      },
+      visitBlock(block, { prefix, lastChild }) {
+        const last = block === lastChild;
+        printEntry(prefix, last, ["block", "cyan"], [
+          block.value ? "evaluable" : "",
+        ]);
+        return {
+          prefix: fmtPrefix(prefix, last),
+          lastChild: block.stmts.at(-1),
+        };
+      },
       visitBinaryExpr(expr, { prefix, lastChild }) {
         const last = expr === lastChild;
         printEntry(prefix, last, ["binaryExpr", "cyan"], [expr.op.type]);

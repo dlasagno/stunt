@@ -84,6 +84,8 @@ const errors = {
   MissingInitializer: "Missing initializer",
   ExpectedExpression: "Expected expression",
   MissingClosingParenthesis: "Missing closing parenthesis",
+  MissingClosingBrace: "Missing closing brace",
+  UnexpectedEvaluableBlock: "Unexpected evaluable block",
   MultipleDeclarations: "Multiple declarations",
   InvalidAssignment: "Invalid assignment",
   UndefinedVariable: "Undefined variable",

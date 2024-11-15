@@ -4,9 +4,10 @@ export type ASTNode = {
   type: string;
 };
 
-export type AST = Program | Decl | Stmt | Expr;
+export type AST = Program | Decl | Stmt | Block | Expr;
+export type DeclOrStmt = Decl | Stmt;
 export type Decl = VarDecl;
-export type Stmt = ExprStmt | Assignment;
+export type Stmt = ExprStmt | Assignment | BlockStmt;
 export type Expr =
   | GroupingExpr
   | BinaryExpr
@@ -16,7 +17,7 @@ export type Expr =
 
 export type Program = ASTNode & {
   type: "program";
-  stmts: (Decl | Stmt)[];
+  stmts: DeclOrStmt[];
 };
 
 export type VarDecl = ASTNode & {
@@ -35,6 +36,19 @@ export type Assignment = ASTNode & {
   name: Token<"IDENTIFIER">;
   expression: Expr;
 };
+export type BlockStmt = ASTNode & {
+  type: "blockStmt";
+  block: Block<null>;
+};
+
+export type Block<E extends Expr | null = Expr | null> = ASTNode & {
+  type: "block";
+  stmts: DeclOrStmt[];
+  value: E;
+};
+export function isNonEvaluableBlock(block: Block): block is Block<null> {
+  return block.value === null;
+}
 
 export type BinaryExpr = ASTNode & {
   type: "binaryExpr";
