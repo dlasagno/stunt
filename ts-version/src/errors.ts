@@ -1,6 +1,7 @@
 import type { SourceFile } from "./utils.ts";
 
 export type CompilerError = {
+  type: "error" | "warning";
   code: ErrorCode;
   message: string;
   position: number;
@@ -11,10 +12,11 @@ export type ErrorCode = keyof typeof errors;
 export function logError(err: CompilerError, source: SourceFile): void {
   const details = getErrorDetails(err, source.content);
   const pad = details.lineNumber.toString().length;
+  const color = `color: ${err.type === "error" ? "red" : "yellow"}`;
 
   console.error(
-    `%cError: ${errors[err.code]}`,
-    "color: red",
+    `%c${err.type === "error" ? "Error" : "Warning"}: ${errors[err.code]}`,
+    color,
   );
   console.error(
     `${
@@ -29,14 +31,14 @@ export function logError(err: CompilerError, source: SourceFile): void {
         details.column + err.length - 1,
       )
     }%c${details.line.slice(details.column + err.length - 1)}`,
-    "color: red",
+    color,
     "",
   );
   console.error(
     `${"".padStart(pad)}| ${"".padStart(details.column - 1)}%c${
       "^".padStart(err.length, "^")
     } ${err.message}`,
-    "color: red",
+    color,
   );
 }
 
@@ -82,4 +84,8 @@ const errors = {
   MissingInitializer: "Missing initializer",
   ExpectedExpression: "Expected expression",
   MissingClosingParenthesis: "Missing closing parenthesis",
+  MultipleDeclarations: "Multiple declarations",
+  InvalidAssignment: "Invalid assignment",
+  UndefinedVariable: "Undefined variable",
+  UnusedVariable: "Unused variable",
 };

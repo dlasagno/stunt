@@ -1,5 +1,5 @@
 import type { AST } from "./types.ts";
-import { visitASTWithCtx } from "./visit.ts";
+import { visitAllASTWithCtx } from "./visit.ts";
 
 // -----------------
 //  Print Functions
@@ -27,7 +27,7 @@ function fmtPrefix(prefix: string, last = true): string {
 }
 
 export function printAST(ast: AST) {
-  visitASTWithCtx<{
+  visitAllASTWithCtx<{
     prefix: string;
     lastChild?: AST;
   }>(
@@ -64,6 +64,17 @@ export function printAST(ast: AST) {
           lastChild: stmt.expr,
         };
       },
+      visitAssignment(stmt, { prefix, lastChild }) {
+        const last = stmt === lastChild;
+        printEntry(prefix, last, ["assignment", "cyan"], [
+          stmt.name.lexeme,
+          "magenta",
+        ]);
+        return {
+          prefix: fmtPrefix(prefix, last),
+          lastChild: stmt.expression,
+        };
+      },
       visitBinaryExpr(expr, { prefix, lastChild }) {
         const last = expr === lastChild;
         printEntry(prefix, last, ["binaryExpr", "cyan"], [expr.op.type]);
@@ -96,6 +107,16 @@ export function printAST(ast: AST) {
           ["literalExpr", "cyan"],
           [String(expr.value), "yellow"],
         );
+        return {
+          prefix: fmtPrefix(prefix, last),
+        };
+      },
+      visitVariableExpr(expr, { prefix, lastChild }) {
+        const last = expr === lastChild;
+        printEntry(prefix, last, ["variableExpr", "cyan"], [
+          expr.name.lexeme,
+          "magenta",
+        ]);
         return {
           prefix: fmtPrefix(prefix, last),
         };

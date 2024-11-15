@@ -8,12 +8,13 @@ declaration   -> constDecl
                | letDecl
                | statement ;
 statement     -> exprStmt
-               | ... ;
+               | assignment ;
 
 constDecl     -> "const" IDENTIFIER "=" expression ";" ;
 letDecl       -> "let" IDENTIFIER "=" expression ";" ;
 
 exprStmt      -> expression ";" ;
+assignment    -> IDENTIFIER "=" expression ";" ;
 
 expression    -> equality ;
 equality      -> comparison ( ( "!=" | "==" ) comparison )* ;

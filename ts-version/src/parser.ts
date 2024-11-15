@@ -1,6 +1,6 @@
 import type { Decl, Expr, Program, Stmt } from "./ast/types.ts";
 import type { CompilerError, ErrorCode } from "./errors.ts";
-import type { Token, TokenType } from "./scanner.ts";
+import type { Token, TokenType } from "./tokens.ts";
 
 export function parse(tokens: Token[]): [Program, CompilerError[]] {
   const ctx = createParserContext(tokens);
@@ -16,7 +16,7 @@ export function parse(tokens: Token[]): [Program, CompilerError[]] {
   return [{
     type: "program",
     stmts,
-  }, ctx.errors]; // TODO: Replace with real ctx.ast or find a better way
+  }, ctx.errors];
 }
 
 function declaration(ctx: ParserContext): Decl | Stmt | null {
@@ -73,24 +73,53 @@ function varDeclaration(ctx: ParserContext): Decl {
 }
 
 function statement(ctx: ParserContext): Stmt {
-  return expressionStatement(ctx);
+  return assignment(ctx);
 }
 
-function expressionStatement(ctx: ParserContext): Stmt {
-  const expr = expression(ctx);
+function assignment(ctx: ParserContext): Stmt {
+  setStart(ctx);
+  const expr: Expr = expression(ctx);
+
+  let stmt: Stmt = { type: "exprStmt", expr };
+  if (match(ctx, "EQUAL")) {
+    const value = expression(ctx);
+
+    if (expr.type !== "variableExpr") {
+      throw addError(
+        ctx,
+        "InvalidAssignment",
+        "Invalid assignment target",
+      );
+    }
+
+    const name = expr.name;
+    stmt = {
+      type: "assignment",
+      name,
+      expression: value,
+    };
+  }
 
   if (!match(ctx, "SEMICOLON")) {
     const token = peek(ctx);
-    throw addError(ctx, "MissingSemicolon", 'Missing ";" after expression', { // TODO: revise
-      position: token.position + token.lexeme.length,
-      length: 1,
-    });
+    throw addError(
+      ctx,
+      "MissingSemicolon",
+      `Missing ";" after ${
+        stmt.type === "assignment" ? "assignment" : "expression"
+      }`,
+      { // TODO: revise
+        position: token.position + token.lexeme.length,
+        length: 1,
+      },
+    );
   }
 
-  return { type: "exprStmt", expr };
+  return stmt;
 }
 
 function expression(ctx: ParserContext): Expr {
+  setStart(ctx);
   return equality(ctx);
 }
 
@@ -204,8 +233,13 @@ function primary(ctx: ParserContext): Expr {
     return { type: "groupingExpr", expr };
   }
 
-  setStart(ctx);
-  throw addError(ctx, "ExpectedExpression", "This is not a valid expression");
+  const startToken = peekStart(ctx);
+  throw addError(
+    ctx,
+    "ExpectedExpression",
+    `Expected expression, found "${startToken.lexeme}"`,
+    { position: startToken.position, length: 1 },
+  );
 }
 
 // ----------------
@@ -243,6 +277,7 @@ function addError(
 ): ParserException {
   if (options) {
     ctx.errors.push({
+      type: "error",
       position: options.position,
       length: options.length,
       code,
@@ -252,6 +287,7 @@ function addError(
     const start = ctx.tokens[ctx.start];
     const current = ctx.tokens[ctx.current];
     ctx.errors.push({
+      type: "error",
       position: start.position,
       length: current.position + current.lexeme.length - start.position,
       code,
@@ -312,4 +348,8 @@ function advance(ctx: ParserContext): Token {
 
 function peek(ctx: ParserContext, offset = 0): Token {
   return ctx.tokens[ctx.current + offset];
+}
+
+function peekStart(ctx: ParserContext, offset = 0): Token {
+  return ctx.tokens[ctx.start + offset];
 }

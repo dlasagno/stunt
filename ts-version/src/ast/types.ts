@@ -1,4 +1,4 @@
-import { type Token } from "../scanner.ts";
+import { type Token } from "../tokens.ts";
 
 export type ASTNode = {
   type: string;
@@ -6,7 +6,7 @@ export type ASTNode = {
 
 export type AST = Program | Decl | Stmt | Expr;
 export type Decl = VarDecl;
-export type Stmt = ExprStmt;
+export type Stmt = ExprStmt | Assignment;
 export type Expr =
   | GroupingExpr
   | BinaryExpr
@@ -29,6 +29,11 @@ export type VarDecl = ASTNode & {
 export type ExprStmt = ASTNode & {
   type: "exprStmt";
   expr: Expr;
+};
+export type Assignment = ASTNode & {
+  type: "assignment";
+  name: Token<"IDENTIFIER">;
+  expression: Expr;
 };
 
 export type BinaryExpr = ASTNode & {

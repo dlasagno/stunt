@@ -1,5 +1,6 @@
 import type { Pop } from "../utils.ts";
 import type {
+  Assignment,
   AST,
   BinaryExpr,
   ExprStmt,
@@ -8,16 +9,19 @@ import type {
   Program,
   UnaryExpr,
   VarDecl,
+  VariableExpr,
 } from "./types.ts";
 
 export type VisitorWithCtx<Ctx = undefined> = {
   visitProgram?: (program: Program, ctx: Ctx) => Ctx;
   visitVarDecl?: (decl: VarDecl, ctx: Ctx) => Ctx;
   visitExprStmt?: (stmt: ExprStmt, ctx: Ctx) => Ctx;
+  visitAssignment?: (stmt: Assignment, ctx: Ctx) => Ctx;
   visitBinaryExpr?: (expr: BinaryExpr, ctx: Ctx) => Ctx;
   visitUnaryExpr?: (expr: UnaryExpr, ctx: Ctx) => Ctx;
   visitGroupingExpr?: (expr: GroupingExpr, ctx: Ctx) => Ctx;
   visitLiteralExpr?: (expr: LiteralExpr, ctx: Ctx) => Ctx;
+  visitVariableExpr?: (expr: VariableExpr, ctx: Ctx) => Ctx;
 };
 export type Visitor = {
   [K in keyof Required<VisitorWithCtx<undefined>>]?: (
@@ -25,8 +29,18 @@ export type Visitor = {
   ) => void;
 };
 
-export function visitAST(ast: AST, visitor: Visitor) {
+export function visitAST(ast: AST, visitor: Visitor): void {
   visitASTWithCtx(ast, undefined, visitor);
+}
+export function visitAllAST(ast: AST, visitor: Required<Visitor>): void {
+  visitAllASTWithCtx(ast, undefined, visitor);
+}
+export function visitAllASTWithCtx<Ctx>(
+  ast: AST,
+  ctx: Ctx,
+  visitor: Required<VisitorWithCtx<Ctx>>,
+): void {
+  visitASTWithCtx(ast, ctx, visitor);
 }
 export function visitASTWithCtx<Ctx>(
   ast: AST,
@@ -49,6 +63,10 @@ export function visitASTWithCtx<Ctx>(
       newCtx = visitor.visitExprStmt?.(ast, ctx) ?? newCtx;
       visitASTWithCtx(ast.expr, newCtx, visitor);
       break;
+    case "assignment":
+      newCtx = visitor.visitAssignment?.(ast, ctx) ?? newCtx;
+      visitASTWithCtx(ast.expression, newCtx, visitor);
+      break;
     case "binaryExpr":
       newCtx = visitor.visitBinaryExpr?.(ast, ctx) ?? newCtx;
       visitASTWithCtx(ast.left, newCtx, visitor);
@@ -64,6 +82,9 @@ export function visitASTWithCtx<Ctx>(
       break;
     case "literalExpr":
       newCtx = visitor.visitLiteralExpr?.(ast, ctx) ?? newCtx;
+      break;
+    case "variableExpr":
+      newCtx = visitor.visitVariableExpr?.(ast, ctx) ?? newCtx;
       break;
   }
 }

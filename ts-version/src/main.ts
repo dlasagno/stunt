@@ -1,4 +1,5 @@
 import { parseArgs } from "@std/cli";
+import { analyze } from "./analyzer/analyzer.ts";
 import { printAST } from "./ast/utils.ts";
 import { logError } from "./errors.ts";
 import { generate } from "./generator.ts";
@@ -6,13 +7,8 @@ import { parse } from "./parser.ts";
 import { scanTokens } from "./scanner.ts";
 import { printSourceFile } from "./utils.ts";
 
-export function add(a: number, b: number): number {
-  return a + b;
-}
-
 // Learn more at https://docs.deno.com/runtime/manual/examples/module_metadata#concepts
 if (import.meta.main) {
-  // console.log("Add 2 + 3 =", add(2, 3));
   const args = parseArgs(Deno.args);
 
   const [command, inputFile, outputFile] = args._;
@@ -58,6 +54,17 @@ if (import.meta.main) {
     console.log();
     console.log("%cAST:", "font-weight: bold");
     printAST(ast);
+
+    const errors = analyze(ast);
+    if (errors.filter.length > 0) {
+      for (const err of errors) {
+        console.log();
+        logError(err, source);
+      }
+      if (errors.filter((err) => err.type === "error").length > 0) {
+        Deno.exit(1);
+      }
+    }
 
     if (typeof outputFile === "string") {
       const output = generate(ast);

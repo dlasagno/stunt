@@ -1,4 +1,5 @@
 import type {
+  Assignment,
   BinaryExpr,
   Decl,
   Expr,
@@ -41,9 +42,15 @@ function generateVarDecl(decl: VarDecl): string {
 
 function generateStatement(stmt: Stmt): string {
   switch (stmt.type) {
+    case "assignment":
+      return generateAssignment(stmt);
     case "exprStmt":
       return generateExprStmt(stmt);
   }
+}
+
+function generateAssignment(stmt: Assignment): string {
+  return `${stmt.name.lexeme} = ${generateExpr(stmt.expression)};`;
 }
 
 function generateExprStmt(stmt: ExprStmt): string {

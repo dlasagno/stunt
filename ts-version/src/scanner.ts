@@ -1,52 +1,5 @@
 import type { CompilerError, ErrorCode } from "./errors.ts";
-
-export type Token<T extends TokenType = TokenType> = {
-  type: T;
-  lexeme: string;
-  literal: undefined | number | string;
-  position: number;
-};
-
-export type TokenType =
-  // Single-character tokens
-  | "LEFT_PAREN"
-  | "RIGHT_PAREN"
-  | "LEFT_BRACE"
-  | "RIGHT_BRACE"
-  | "COMMA"
-  | "DOT"
-  | "MINUS"
-  | "PLUS"
-  | "SEMICOLON"
-  | "SLASH"
-  | "STAR"
-  // One or two character tokens
-  | "BANG"
-  | "BANG_EQUAL"
-  | "EQUAL"
-  | "EQUAL_EQUAL"
-  | "GREATER"
-  | "GREATER_EQUAL"
-  | "LESS"
-  | "LESS_EQUAL"
-  // Literals
-  | "IDENTIFIER"
-  | "STRING"
-  | "NUMBER"
-  // Keywords
-  | "AND"
-  | "CONST"
-  | "ELSE"
-  | "FALSE"
-  | "FN"
-  | "FOR"
-  | "IF"
-  | "LET"
-  | "OR"
-  | "RETURN"
-  | "TRUE"
-  | "WHILE"
-  | "EOF";
+import type { Token, TokenType } from "./tokens.ts";
 
 const keywords: Record<string, TokenType> = {
   true: "TRUE",
@@ -217,7 +170,6 @@ function scanNumber(ctx: ScannerContext): void {
 
 function scanIdentifier(ctx: ScannerContext): void {
   while (isAlphaNumeric(peek(ctx))) {
-    console.log(peek(ctx));
     advance(ctx);
   }
   const type = keywords[ctx.source.slice(ctx.start, ctx.current)];
@@ -299,7 +251,7 @@ function addToken(
 ): void {
   ctx.tokens.push({
     type,
-    lexeme: ctx.source.slice(ctx.start, ctx.current),
+    lexeme: type === "EOF" ? "<eof>" : ctx.source.slice(ctx.start, ctx.current),
     literal,
     position: ctx.start,
   });
@@ -311,6 +263,7 @@ function addErrorAndRecover(
   message: string,
 ): void {
   ctx.errors.push({
+    type: "error",
     position: ctx.start,
     length: ctx.current - ctx.start,
     code,
