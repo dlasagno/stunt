@@ -117,17 +117,35 @@ export function printAST(ast: AST) {
           lastChild: expr.expr,
         };
       },
-      visitLiteralExpr(expr, { prefix, lastChild }) {
+      visitNumberLiteralExpr(expr, { prefix, lastChild }) {
         const last = expr === lastChild;
         printEntry(
           prefix,
           last,
-          ["literalExpr", "cyan"],
-          [String(expr.value), "yellow"],
+          ["numberLiteralExpr", "cyan"],
+          [expr.value.toString(), "yellow"],
         );
-        return {
-          prefix: fmtPrefix(prefix, last),
-        };
+        return { prefix: fmtPrefix(prefix, last) };
+      },
+      visitStringLiteralExpr(expr, { prefix, lastChild }) {
+        const last = expr === lastChild;
+        printEntry(
+          prefix,
+          last,
+          ["stringLiteralExpr", "cyan"],
+          [JSON.stringify(expr.value), "yellow"],
+        );
+        return { prefix: fmtPrefix(prefix, last) };
+      },
+      visitBooleanLiteralExpr(expr, { prefix, lastChild }) {
+        const last = expr === lastChild;
+        printEntry(
+          prefix,
+          last,
+          ["booleanLiteralExpr", "cyan"],
+          [expr.value ? "true" : "false", "yellow"],
+        );
+        return { prefix: fmtPrefix(prefix, last) };
       },
       visitVariableExpr(expr, { prefix, lastChild }) {
         const last = expr === lastChild;

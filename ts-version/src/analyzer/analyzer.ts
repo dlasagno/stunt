@@ -1,11 +1,13 @@
 import {
   Assignment,
   BinaryExpr,
+  BooleanLiteralExpr,
   Expr,
   ExprStmt,
   GroupingExpr,
-  LiteralExpr,
+  NumberLiteralExpr,
   Program,
+  StringLiteralExpr,
   UnaryExpr,
   VarDecl,
   VariableExpr,
@@ -105,7 +107,9 @@ function analyzeExpr(ctx: AnalyzerContext, expr: Expr): void {
     case "groupingExpr":
       analyzeGroupingExpr(ctx, expr);
       break;
-    case "literalExpr":
+    case "numberLiteralExpr":
+    case "stringLiteralExpr":
+    case "booleanLiteralExpr":
       analyzeLiteralExpr(ctx, expr);
       break;
     case "variableExpr":
@@ -127,7 +131,10 @@ function analyzeGroupingExpr(ctx: AnalyzerContext, expr: GroupingExpr): void {
   analyzeExpr(ctx, expr.expr);
 }
 
-function analyzeLiteralExpr(ctx: AnalyzerContext, expr: LiteralExpr): void {
+function analyzeLiteralExpr(
+  ctx: AnalyzerContext,
+  expr: NumberLiteralExpr | StringLiteralExpr | BooleanLiteralExpr,
+): void {
   // TODO: Check if the literal is valid
 }
 

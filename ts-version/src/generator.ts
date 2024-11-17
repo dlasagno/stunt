@@ -3,13 +3,15 @@ import type {
   BinaryExpr,
   Block,
   BlockStmt,
+  BooleanLiteralExpr,
   Decl,
   Expr,
   ExprStmt,
   GroupingExpr,
-  LiteralExpr,
+  NumberLiteralExpr,
   Program,
   Stmt,
+  StringLiteralExpr,
   UnaryExpr,
   VarDecl,
   VariableExpr,
@@ -109,8 +111,9 @@ function generateExpr(ctx: GeneratorContext, expr: Expr): void {
     case "variableExpr":
       generateVariableExpr(ctx, expr);
       break;
-    case "literalExpr":
-      ``;
+    case "numberLiteralExpr":
+    case "stringLiteralExpr":
+    case "booleanLiteralExpr":
       generateLiteralExpr(ctx, expr);
       break;
   }
@@ -178,15 +181,18 @@ function generateVariableExpr(ctx: GeneratorContext, expr: VariableExpr): void {
   write(ctx, expr.name.lexeme);
 }
 
-function generateLiteralExpr(ctx: GeneratorContext, expr: LiteralExpr): void {
-  switch (typeof expr.value) {
-    case "number":
+function generateLiteralExpr(
+  ctx: GeneratorContext,
+  expr: NumberLiteralExpr | StringLiteralExpr | BooleanLiteralExpr,
+): void {
+  switch (expr.type) {
+    case "numberLiteralExpr":
       write(ctx, expr.value.toString());
       break;
-    case "string":
+    case "stringLiteralExpr":
       write(ctx, JSON.stringify(expr.value));
       break;
-    case "boolean":
+    case "booleanLiteralExpr":
       write(ctx, expr.value ? "true" : "false");
       break;
   }

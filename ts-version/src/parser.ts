@@ -179,7 +179,7 @@ function equality(ctx: ParserContext): Expr {
   while (match(ctx, ...validOps)) {
     expr = {
       type: "binaryExpr",
-      op: peek(ctx, -1) as Token<typeof validOps[number]>,
+      op: peek<typeof validOps[number]>(ctx, -1),
       left: expr,
       right: comparison(ctx),
     };
@@ -200,7 +200,7 @@ function comparison(ctx: ParserContext): Expr {
   while (match(ctx, ...validOps)) {
     expr = {
       type: "binaryExpr",
-      op: peek(ctx, -1) as Token<typeof validOps[number]>,
+      op: peek<typeof validOps[number]>(ctx, -1),
       left: expr,
       right: term(ctx),
     };
@@ -216,7 +216,7 @@ function term(ctx: ParserContext): Expr {
   while (match(ctx, ...validOps)) {
     expr = {
       type: "binaryExpr",
-      op: peek(ctx, -1) as Token<typeof validOps[number]>,
+      op: peek<typeof validOps[number]>(ctx, -1),
       left: expr,
       right: factor(ctx),
     };
@@ -232,7 +232,7 @@ function factor(ctx: ParserContext): Expr {
   while (match(ctx, ...validOps)) {
     expr = {
       type: "binaryExpr",
-      op: peek(ctx, -1) as Token<typeof validOps[number]>,
+      op: peek<typeof validOps[number]>(ctx, -1),
       left: expr,
       right: unary(ctx),
     };
@@ -246,7 +246,7 @@ function unary(ctx: ParserContext): Expr {
   if (match(ctx, ...validOps)) {
     return {
       type: "unaryExpr",
-      op: peek(ctx, -1) as Token<typeof validOps[number]>,
+      op: peek<typeof validOps[number]>(ctx, -1),
       right: primary(ctx),
     };
   }
@@ -255,17 +255,37 @@ function unary(ctx: ParserContext): Expr {
 }
 
 function primary(ctx: ParserContext): Expr {
-  if (match(ctx, "FALSE")) return { type: "literalExpr", value: false };
-  if (match(ctx, "TRUE")) return { type: "literalExpr", value: true };
+  if (match(ctx, "FALSE")) {
+    return {
+      type: "booleanLiteralExpr",
+      token: peek<"FALSE">(ctx, -1),
+      value: false,
+    };
+  }
+  if (match(ctx, "TRUE")) {
+    return {
+      type: "booleanLiteralExpr",
+      token: peek<"TRUE">(ctx, -1),
+      value: true,
+    };
+  }
   if (match(ctx, "NUMBER")) {
-    return { type: "literalExpr", value: Number(peek(ctx, -1).literal) };
+    return {
+      type: "numberLiteralExpr",
+      token: peek<"NUMBER">(ctx, -1),
+      value: Number(peek(ctx, -1).literal),
+    };
   }
   if (match(ctx, "STRING")) {
-    return { type: "literalExpr", value: String(peek(ctx, -1).literal) };
+    return {
+      type: "stringLiteralExpr",
+      token: peek<"STRING">(ctx, -1),
+      value: String(peek(ctx, -1).literal),
+    };
   }
 
   if (match(ctx, "IDENTIFIER")) {
-    return { type: "variableExpr", name: peek(ctx, -1) as Token<"IDENTIFIER"> };
+    return { type: "variableExpr", name: peek<"IDENTIFIER">(ctx, -1) };
   }
 
   if (match(ctx, "LEFT_PAREN")) {
@@ -388,17 +408,25 @@ function check(ctx: ParserContext, type: TokenType): boolean {
   return peek(ctx).type === type;
 }
 
-function advance(ctx: ParserContext): Token {
+function advance<T extends TokenType = TokenType>(
+  ctx: ParserContext,
+): Token<T> {
   if (!isAtEnd(ctx)) {
     ctx.current += 1;
   }
-  return peek(ctx, -1);
+  return peek<T>(ctx, -1);
 }
 
-function peek(ctx: ParserContext, offset = 0): Token {
-  return ctx.tokens[ctx.current + offset];
+function peek<T extends TokenType = TokenType>(
+  ctx: ParserContext,
+  offset = 0,
+): Token<T> {
+  return ctx.tokens[ctx.current + offset] as Token<T>;
 }
 
-function peekStart(ctx: ParserContext, offset = 0): Token {
-  return ctx.tokens[ctx.start + offset];
+function peekStart<T extends TokenType = TokenType>(
+  ctx: ParserContext,
+  offset = 0,
+): Token<T> {
+  return ctx.tokens[ctx.start + offset] as Token<T>;
 }

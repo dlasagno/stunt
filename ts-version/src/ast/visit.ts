@@ -5,10 +5,12 @@ import type {
   BinaryExpr,
   Block,
   BlockStmt,
+  BooleanLiteralExpr,
   ExprStmt,
   GroupingExpr,
-  LiteralExpr,
+  NumberLiteralExpr,
   Program,
+  StringLiteralExpr,
   UnaryExpr,
   VarDecl,
   VariableExpr,
@@ -24,7 +26,9 @@ export type VisitorWithCtx<Ctx = undefined> = {
   visitBinaryExpr?: (expr: BinaryExpr, ctx: Ctx) => Ctx;
   visitUnaryExpr?: (expr: UnaryExpr, ctx: Ctx) => Ctx;
   visitGroupingExpr?: (expr: GroupingExpr, ctx: Ctx) => Ctx;
-  visitLiteralExpr?: (expr: LiteralExpr, ctx: Ctx) => Ctx;
+  visitNumberLiteralExpr?: (expr: NumberLiteralExpr, ctx: Ctx) => Ctx;
+  visitStringLiteralExpr?: (expr: StringLiteralExpr, ctx: Ctx) => Ctx;
+  visitBooleanLiteralExpr?: (expr: BooleanLiteralExpr, ctx: Ctx) => Ctx;
   visitVariableExpr?: (expr: VariableExpr, ctx: Ctx) => Ctx;
 };
 export type Visitor = {
@@ -94,8 +98,14 @@ export function visitASTWithCtx<Ctx>(
       newCtx = visitor.visitGroupingExpr?.(ast, ctx) ?? newCtx;
       visitASTWithCtx(ast.expr, newCtx, visitor);
       break;
-    case "literalExpr":
-      newCtx = visitor.visitLiteralExpr?.(ast, ctx) ?? newCtx;
+    case "numberLiteralExpr":
+      newCtx = visitor.visitNumberLiteralExpr?.(ast, ctx) ?? newCtx;
+      break;
+    case "stringLiteralExpr":
+      newCtx = visitor.visitStringLiteralExpr?.(ast, ctx) ?? newCtx;
+      break;
+    case "booleanLiteralExpr":
+      newCtx = visitor.visitBooleanLiteralExpr?.(ast, ctx) ?? newCtx;
       break;
     case "variableExpr":
       newCtx = visitor.visitVariableExpr?.(ast, ctx) ?? newCtx;

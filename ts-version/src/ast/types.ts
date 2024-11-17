@@ -13,7 +13,9 @@ export type Expr =
   | BinaryExpr
   | UnaryExpr
   | VariableExpr
-  | LiteralExpr;
+  | NumberLiteralExpr
+  | StringLiteralExpr
+  | BooleanLiteralExpr;
 
 export type Program = ASTNode & {
   type: "program";
@@ -80,7 +82,18 @@ export type VariableExpr = ASTNode & {
   type: "variableExpr";
   name: Token<"IDENTIFIER">;
 };
-export type LiteralExpr = ASTNode & {
-  type: "literalExpr";
-  value: number | string | boolean;
+export type NumberLiteralExpr = ASTNode & {
+  type: "numberLiteralExpr";
+  token: Token<"NUMBER">;
+  value: number;
+};
+export type StringLiteralExpr = ASTNode & {
+  type: "stringLiteralExpr";
+  token: Token<"STRING">;
+  value: string;
+};
+export type BooleanLiteralExpr = ASTNode & {
+  type: "booleanLiteralExpr";
+  token: Token<"TRUE" | "FALSE">;
+  value: boolean;
 };
