@@ -1,10 +1,14 @@
 import {
   Assignment,
   BinaryExpr,
+  Block,
+  BlockStmt,
   BooleanLiteralExpr,
+  DeclOrStmt,
   Expr,
   ExprStmt,
   GroupingExpr,
+  IfStmt,
   NumberLiteralExpr,
   Program,
   StringLiteralExpr,
@@ -47,7 +51,7 @@ export function analyze(ast: Program): CompilerError[] {
 
 function analyzeStmt(
   ctx: AnalyzerContext,
-  decl: Program["stmts"][number],
+  decl: DeclOrStmt,
 ): void {
   switch (decl.type) {
     case "varDecl":
@@ -58,6 +62,12 @@ function analyzeStmt(
       break;
     case "exprStmt":
       analyzeExprStmt(ctx, decl);
+      break;
+    case "blockStmt":
+      analyzeBlockStmt(ctx, decl);
+      break;
+    case "ifStmt":
+      analyzeIfStmt(ctx, decl);
       break;
   }
 }
@@ -90,6 +100,28 @@ function analyzeAssignment(ctx: AnalyzerContext, assignment: Assignment): void {
     );
   }
   analyzeExpr(ctx, assignment.expression);
+}
+
+function analyzeBlockStmt(ctx: AnalyzerContext, stmt: BlockStmt): void {
+  analyzeBlock(ctx, stmt.block);
+}
+
+function analyzeBlock(ctx: AnalyzerContext, block: Block): void {
+  for (const stmt of block.stmts) {
+    analyzeStmt(ctx, stmt);
+  }
+}
+
+function analyzeIfStmt(ctx: AnalyzerContext, stmt: IfStmt): void {
+  analyzeExpr(ctx, stmt.condition);
+  analyzeBlock(ctx, stmt.thenBranch);
+  if (stmt.elseBranch) {
+    if (stmt.elseBranch.type === "block") {
+      analyzeBlock(ctx, stmt.elseBranch);
+    } else {
+      analyzeIfStmt(ctx, stmt.elseBranch);
+    }
+  }
 }
 
 function analyzeExprStmt(ctx: AnalyzerContext, stmt: ExprStmt): void {

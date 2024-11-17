@@ -83,6 +83,8 @@ const errors = {
   MissingIdentifier: "Missing identifier",
   MissingInitializer: "Missing initializer",
   ExpectedExpression: "Expected expression",
+  MissingCondition: "Missing condition",
+  ExpectedBlock: "Expected block",
   MissingClosingParenthesis: "Missing closing parenthesis",
   MissingClosingBrace: "Missing closing brace",
   UnexpectedEvaluableBlock: "Unexpected evaluable block",

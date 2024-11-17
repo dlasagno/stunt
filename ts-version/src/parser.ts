@@ -3,7 +3,7 @@ import {
   type Decl,
   type DeclOrStmt,
   type Expr,
-  isNonEvaluableBlock,
+  IfStmt,
   type Program,
   type Stmt,
 } from "./ast/types.ts";
@@ -81,21 +81,79 @@ function varDeclaration(ctx: ParserContext): Decl {
 }
 
 function statement(ctx: ParserContext): Stmt {
+  if (match(ctx, "IF")) {
+    return ifStatement(ctx);
+  }
   if (match(ctx, "LEFT_BRACE")) {
     const blk = block(ctx);
-    if (!isNonEvaluableBlock(blk)) {
-      throw addError(
-        ctx,
-        "UnexpectedEvaluableBlock",
-        "Unexpected evaluable block",
-      );
-    }
     return {
       type: "blockStmt",
       block: blk,
     };
   }
   return assignment(ctx);
+}
+
+function ifStatement(ctx: ParserContext): IfStmt {
+  if (!match(ctx, "LEFT_PAREN")) {
+    const token = peek(ctx);
+    throw addError(
+      ctx,
+      "MissingCondition",
+      "Missing condition",
+      { position: token.position, length: 1 },
+    );
+  }
+  const condition = expression(ctx);
+  if (!match(ctx, "RIGHT_PAREN")) {
+    const token = peek(ctx, -1);
+    throw addError(
+      ctx,
+      "MissingClosingParenthesis",
+      "Missing closing parenthesis",
+      { position: token.position + token.lexeme.length, length: 1 },
+    );
+  }
+
+  if (!match(ctx, "LEFT_BRACE")) {
+    const token = peek(ctx, -1);
+    throw addError(
+      ctx,
+      "ExpectedBlock",
+      "Expected block after the condition",
+      { position: token.position + token.lexeme.length, length: 1 },
+    );
+  }
+  const thenBranch = block(ctx);
+
+  if (!match(ctx, "ELSE")) {
+    return {
+      type: "ifStmt",
+      condition,
+      thenBranch,
+    };
+  }
+  let elseBranch: Block | IfStmt;
+  if (match(ctx, "LEFT_BRACE")) {
+    elseBranch = block(ctx);
+  } else if (match(ctx, "IF")) {
+    elseBranch = ifStatement(ctx);
+  } else {
+    const token = peek(ctx, -1);
+    throw addError(
+      ctx,
+      "ExpectedBlock",
+      "Expected block after else",
+      { position: token.position, length: 1 },
+    );
+  }
+
+  return {
+    type: "ifStmt",
+    condition,
+    thenBranch,
+    elseBranch,
+  };
 }
 
 // TODO: decide if the left brace should be checked in this function
@@ -106,8 +164,6 @@ function block(ctx: ParserContext): Block {
     if (stmt === null) continue;
     stmts.push(stmt);
   }
-
-  // TODO: Check if the block is evaluable
 
   if (!match(ctx, "RIGHT_BRACE")) {
     const token = peek(ctx);
@@ -121,7 +177,6 @@ function block(ctx: ParserContext): Block {
   return {
     type: "block",
     stmts,
-    value: null,
   };
 }
 
@@ -368,10 +423,10 @@ function addError(
 
 function synchronize(ctx: ParserContext): void {
   advance(ctx);
-  while (!isAtEnd(ctx) && peek(ctx).type !== "EOF") {
-    if (peek(ctx).type === "SEMICOLON") return;
+  while (!isAtEnd(ctx)) {
+    if (peek(ctx, -1).type === "SEMICOLON") return;
 
-    switch (peek(ctx).type) {
+    switch (peek(ctx, -1).type) {
       case "CONST":
       case "LET":
       case "RETURN":

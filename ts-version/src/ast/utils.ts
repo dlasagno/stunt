@@ -85,12 +85,18 @@ export function printAST(ast: AST) {
       },
       visitBlock(block, { prefix, lastChild }) {
         const last = block === lastChild;
-        printEntry(prefix, last, ["block", "cyan"], [
-          block.value ? "evaluable" : "",
-        ]);
+        printEntry(prefix, last, ["block", "cyan"]);
         return {
           prefix: fmtPrefix(prefix, last),
           lastChild: block.stmts.at(-1),
+        };
+      },
+      visitIfStmt(stmt, { prefix, lastChild }) {
+        const last = stmt === lastChild;
+        printEntry(prefix, last, ["ifStmt", "cyan"]);
+        return {
+          prefix: fmtPrefix(prefix, last),
+          lastChild: stmt.elseBranch,
         };
       },
       visitBinaryExpr(expr, { prefix, lastChild }) {

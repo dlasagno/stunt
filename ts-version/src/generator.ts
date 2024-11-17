@@ -8,6 +8,7 @@ import type {
   Expr,
   ExprStmt,
   GroupingExpr,
+  IfStmt,
   NumberLiteralExpr,
   Program,
   Stmt,
@@ -61,6 +62,9 @@ function generateStatement(ctx: GeneratorContext, stmt: Stmt): void {
     case "blockStmt":
       generateBlockStmt(ctx, stmt);
       break;
+    case "ifStmt":
+      generateIfStmt(ctx, stmt);
+      break;
   }
 }
 
@@ -95,6 +99,25 @@ function generateBlock(ctx: GeneratorContext, block: Block): void {
   }
   outdent(ctx);
   write(ctx, "}");
+}
+
+function generateIfStmt(
+  ctx: GeneratorContext,
+  stmt: IfStmt,
+  indent = true,
+): void {
+  write(ctx, "if (", indent);
+  generateExpr(ctx, stmt.condition);
+  write(ctx, ") ");
+  generateBlock(ctx, stmt.thenBranch);
+  if (stmt.elseBranch) {
+    write(ctx, " else ");
+    if (stmt.elseBranch.type === "block") {
+      generateBlock(ctx, stmt.elseBranch);
+    } else {
+      generateIfStmt(ctx, stmt.elseBranch, false);
+    }
+  }
 }
 
 function generateExpr(ctx: GeneratorContext, expr: Expr): void {

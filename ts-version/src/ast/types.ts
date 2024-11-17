@@ -7,7 +7,7 @@ export type ASTNode = {
 export type AST = Program | Decl | Stmt | Block | Expr;
 export type DeclOrStmt = Decl | Stmt;
 export type Decl = VarDecl;
-export type Stmt = ExprStmt | Assignment | BlockStmt;
+export type Stmt = ExprStmt | Assignment | BlockStmt | IfStmt;
 export type Expr =
   | GroupingExpr
   | BinaryExpr
@@ -40,17 +40,25 @@ export type Assignment = ASTNode & {
 };
 export type BlockStmt = ASTNode & {
   type: "blockStmt";
-  block: Block<null>;
+  block: Block;
 };
 
-export type Block<E extends Expr | null = Expr | null> = ASTNode & {
+export type Block = ASTNode & {
   type: "block";
   stmts: DeclOrStmt[];
-  value: E;
 };
-export function isNonEvaluableBlock(block: Block): block is Block<null> {
-  return block.value === null;
-}
+// export type EvalBlock = ASTNode & {
+//   type: "evaluableBlock";
+//   stmts: DeclOrStmt[];
+//   value: Expr;
+// };
+
+export type IfStmt = ASTNode & {
+  type: "ifStmt";
+  condition: Expr;
+  thenBranch: Block;
+  elseBranch?: Block | IfStmt;
+};
 
 export type BinaryExpr = ASTNode & {
   type: "binaryExpr";

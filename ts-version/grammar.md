@@ -8,13 +8,20 @@ declaration   -> constDecl
                | letDecl
                | statement ;
 statement     -> exprStmt
-               | assignment ;
+               | assignment
+               | blockStmt
+               | ifStmt;
 
 constDecl     -> "const" IDENTIFIER "=" expression ";" ;
 letDecl       -> "let" IDENTIFIER "=" expression ";" ;
 
 exprStmt      -> expression ";" ;
 assignment    -> IDENTIFIER "=" expression ";" ;
+
+blockStmt     -> block ;
+block         -> "{" declaration* "}" ;
+
+ifStmt        -> "if" "(" expression ")" block ( "else" (block | ifStmt) )? ;
 
 expression    -> equality ;
 equality      -> comparison ( ( "!=" | "==" ) comparison )* ;

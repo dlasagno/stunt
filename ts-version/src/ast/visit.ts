@@ -8,6 +8,7 @@ import type {
   BooleanLiteralExpr,
   ExprStmt,
   GroupingExpr,
+  IfStmt,
   NumberLiteralExpr,
   Program,
   StringLiteralExpr,
@@ -23,6 +24,7 @@ export type VisitorWithCtx<Ctx = undefined> = {
   visitAssignment?: (stmt: Assignment, ctx: Ctx) => Ctx;
   visitBlockStmt?: (stmt: BlockStmt, ctx: Ctx) => Ctx;
   visitBlock?: (block: Block, ctx: Ctx) => Ctx;
+  visitIfStmt?: (stmt: IfStmt, ctx: Ctx) => Ctx;
   visitBinaryExpr?: (expr: BinaryExpr, ctx: Ctx) => Ctx;
   visitUnaryExpr?: (expr: UnaryExpr, ctx: Ctx) => Ctx;
   visitGroupingExpr?: (expr: GroupingExpr, ctx: Ctx) => Ctx;
@@ -83,6 +85,14 @@ export function visitASTWithCtx<Ctx>(
       newCtx = visitor.visitBlock?.(ast, ctx) ?? newCtx;
       for (const stmt of ast.stmts) {
         visitASTWithCtx(stmt, newCtx, visitor);
+      }
+      break;
+    case "ifStmt":
+      newCtx = visitor.visitIfStmt?.(ast, ctx) ?? newCtx;
+      visitASTWithCtx(ast.condition, newCtx, visitor);
+      visitASTWithCtx(ast.thenBranch, newCtx, visitor);
+      if (ast.elseBranch) {
+        visitASTWithCtx(ast.elseBranch, newCtx, visitor);
       }
       break;
     case "binaryExpr":
